@@ -1,0 +1,168 @@
+From: Marek Szyprowski @ 2020-07-08  7:09 UTC (permalink / raw)
+To: linux-spi, linux-kernel
+Cc: Marek Szyprowski, linux-samsung-soc, Mark Brown, Zhang Qiang,Petr Mladek, Bartlomiej Zolnierkiewicz
+
+Since commit 4977caef05aa ("kthread: work could not be queued when worker
+being destroyed") there is a warning when kworker is used without the
+internal 'task' entry properly initialized. Fix this by using
+a kthread_create_worker() helper instead of open-coding a kworker
+initialization.
+
+This fixes a following warning during SPI controller probe, observed on
+the Samsung Exynos 5420-based Peach-Pit Chromebook with recent linux-next
+kernel:
+
+------------[ cut here ]------------
+WARNING: CPU: 3 PID: 1 at kernel/kthread.c:817 kthread_queue_work+0xac/0xd4
+Modules linked in:
+CPU: 3 PID: 1 Comm: swapper/0 Not tainted 5.8.0-rc4-00017-g4977caef05aa #1193
+Hardware name: Samsung Exynos (Flattened Device Tree)
+[<c011184c>] (unwind_backtrace) from [<c010d250>] (show_stack+0x10/0x14)
+[<c010d250>] (show_stack) from [<c0517f64>] (dump_stack+0xbc/0xe8)
+[<c0517f64>] (dump_stack) from [<c01270a8>] (__warn+0xf0/0x108)
+[<c01270a8>] (__warn) from [<c0127170>] (warn_slowpath_fmt+0xb0/0xb8)
+[<c0127170>] (warn_slowpath_fmt) from [<c01512a4>] (kthread_queue_work+0xac/0xd4)
+[<c01512a4>] (kthread_queue_work) from [<c06c38d4>] (spi_start_queue+0x58/0x74)
+[<c06c38d4>] (spi_start_queue) from [<c06c50d4>] (spi_register_controller+0x53c/0xbe8)
+[<c06c50d4>] (spi_register_controller) from [<c06c57b4>] (devm_spi_register_controller+0x34/0x6c)
+[<c06c57b4>] (devm_spi_register_controller) from [<c06cad60>] (s3c64xx_spi_probe+0x3e0/0x7ec)
+[<c06cad60>] (s3c64xx_spi_probe) from [<c064dc8c>] (platform_drv_probe+0x6c/0xa4)
+[<c064dc8c>] (platform_drv_probe) from [<c064b2c0>] (really_probe+0x200/0x48c)
+[<c064b2c0>] (really_probe) from [<c064b6b4>] (driver_probe_device+0x78/0x1fc)
+[<c064b6b4>] (driver_probe_device) from [<c064ba9c>] (device_driver_attach+0x58/0x60)
+[<c064ba9c>] (device_driver_attach) from [<c064bb80>] (__driver_attach+0xdc/0x174)
+[<c064bb80>] (__driver_attach) from [<c06490cc>] (bus_for_each_dev+0x68/0xb4)
+[<c06490cc>] (bus_for_each_dev) from [<c064a400>] (bus_add_driver+0x158/0x214)
+[<c064a400>] (bus_add_driver) from [<c064ca54>] (driver_register+0x78/0x110)
+[<c064ca54>] (driver_register) from [<c0102378>] (do_one_initcall+0x8c/0x424)
+[<c0102378>] (do_one_initcall) from [<c1001158>] (kernel_init_freeable+0x190/0x204)
+[<c1001158>] (kernel_init_freeable) from [<c0ab6d44>] (kernel_init+0x8/0x118)
+[<c0ab6d44>] (kernel_init) from [<c0100114>] (ret_from_fork+0x14/0x20)
+Exception stack(0xedd01fb0 to 0xedd01ff8)
+...
+irq event stamp: 173882
+hardirqs last  enabled at (173881): [<c0abf294>] _raw_spin_unlock_irqrestore+0x68/0x70
+hardirqs last disabled at (173882): [<c0abece0>] _raw_spin_lock_irqsave+0x1c/0x58
+softirqs last  enabled at (171200): [<c027240c>] bdi_register_va+0x178/0x2fc
+softirqs last disabled at (171198): [<c027239c>] bdi_register_va+0x108/0x2fc
+---[ end trace 0fe37f6a9b7e6bc7 ]---
+
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+---
+ drivers/spi/spi.c       | 26 ++++++++++++--------------
+ include/linux/spi/spi.h |  6 ++----
+ 2 files changed, 14 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/spi/spi.c b/drivers/spi/spi.c
+index 805a51b6f54c..19a03a8d6199 100644
+--- a/drivers/spi/spi.c
++++ b/drivers/spi/spi.c
+@@ -1368,7 +1368,7 @@ static void __spi_pump_messages(struct spi_controller *ctlr, bool in_kthread)
+ 
+ 	/* If another context is idling the device then defer */
+ 	if (ctlr->idling) {
+-		kthread_queue_work(&ctlr->kworker, &ctlr->pump_messages);
++		kthread_queue_work(ctlr->kworker, &ctlr->pump_messages);
+ 		spin_unlock_irqrestore(&ctlr->queue_lock, flags);
+ 		return;
+ 	}
+@@ -1382,7 +1382,7 @@ static void __spi_pump_messages(struct spi_controller *ctlr, bool in_kthread)
+ 
+ 		/* Only do teardown in the thread */
+ 		if (!in_kthread) {
+-			kthread_queue_work(&ctlr->kworker,
++			kthread_queue_work(ctlr->kworker,
+ 					   &ctlr->pump_messages);
+ 			spin_unlock_irqrestore(&ctlr->queue_lock, flags);
+ 			return;
+@@ -1616,7 +1616,7 @@ static void spi_set_thread_rt(struct spi_controller *ctlr)
+ {
+ 	dev_info(&ctlr->dev,
+ 		"will run message pump with realtime priority\n");
+-	sched_set_fifo(ctlr->kworker_task);
++	sched_set_fifo(ctlr->kworker->task);
+ }
+ 
+ static int spi_init_queue(struct spi_controller *ctlr)
+@@ -1624,13 +1624,12 @@ static int spi_init_queue(struct spi_controller *ctlr)
+ 	ctlr->running = false;
+ 	ctlr->busy = false;
+ 
+-	kthread_init_worker(&ctlr->kworker);
+-	ctlr->kworker_task = kthread_run(kthread_worker_fn, &ctlr->kworker,
+-					 "%s", dev_name(&ctlr->dev));
+-	if (IS_ERR(ctlr->kworker_task)) {
+-		dev_err(&ctlr->dev, "failed to create message pump task\n");
+-		return PTR_ERR(ctlr->kworker_task);
++	ctlr->kworker = kthread_create_worker(0, dev_name(&ctlr->dev));
++	if (IS_ERR(ctlr->kworker)) {
++		dev_err(&ctlr->dev, "failed to create message pump kworker\n");
++		return PTR_ERR(ctlr->kworker);
+ 	}
++
+ 	kthread_init_work(&ctlr->pump_messages, spi_pump_messages);
+ 
+ 	/*
+@@ -1714,7 +1713,7 @@ void spi_finalize_current_message(struct spi_controller *ctlr)
+ 	ctlr->cur_msg = NULL;
+ 	ctlr->cur_msg_prepared = false;
+ 	ctlr->fallback = false;
+-	kthread_queue_work(&ctlr->kworker, &ctlr->pump_messages);
++	kthread_queue_work(ctlr->kworker, &ctlr->pump_messages);
+ 	spin_unlock_irqrestore(&ctlr->queue_lock, flags);
+ 
+ 	trace_spi_message_done(mesg);
+@@ -1740,7 +1739,7 @@ static int spi_start_queue(struct spi_controller *ctlr)
+ 	ctlr->cur_msg = NULL;
+ 	spin_unlock_irqrestore(&ctlr->queue_lock, flags);
+ 
+-	kthread_queue_work(&ctlr->kworker, &ctlr->pump_messages);
++	kthread_queue_work(ctlr->kworker, &ctlr->pump_messages);
+ 
+ 	return 0;
+ }
+@@ -1796,8 +1795,7 @@ static int spi_destroy_queue(struct spi_controller *ctlr)
+ 		return ret;
+ 	}
+ 
+-	kthread_flush_worker(&ctlr->kworker);
+-	kthread_stop(ctlr->kworker_task);
++	kthread_destroy_worker(ctlr->kworker);
+ 
+ 	return 0;
+ }
+@@ -1820,7 +1818,7 @@ static int __spi_queued_transfer(struct spi_device *spi,
+ 
+ 	list_add_tail(&msg->queue, &ctlr->queue);
+ 	if (!ctlr->busy && need_pump)
+-		kthread_queue_work(&ctlr->kworker, &ctlr->pump_messages);
++		kthread_queue_work(ctlr->kworker, &ctlr->pump_messages);
+ 
+ 	spin_unlock_irqrestore(&ctlr->queue_lock, flags);
+ 	return 0;
+diff --git a/include/linux/spi/spi.h b/include/linux/spi/spi.h
+index 0e67a9a3a1d3..5fcf5da13fdb 100644
+--- a/include/linux/spi/spi.h
++++ b/include/linux/spi/spi.h
+@@ -358,8 +358,7 @@ static inline void spi_unregister_driver(struct spi_driver *sdrv)
+  * @cleanup: frees controller-specific state
+  * @can_dma: determine whether this controller supports DMA
+  * @queued: whether this controller is providing an internal message queue
+- * @kworker: thread struct for message pump
+- * @kworker_task: pointer to task for message pump kworker thread
++ * @kworker: pointer to thread struct for message pump
+  * @pump_messages: work struct for scheduling work to the message pump
+  * @queue_lock: spinlock to syncronise access to message queue
+  * @queue: message queue
+@@ -593,8 +592,7 @@ struct spi_controller {
+ 	 * Over time we expect SPI drivers to be phased over to this API.
+ 	 */
+ 	bool				queued;
+-	struct kthread_worker		kworker;
+-	struct task_struct		*kworker_task;
++	struct kthread_worker		*kworker;
+ 	struct kthread_work		pump_messages;
+ 	spinlock_t			queue_lock;
+ 	struct list_head		queue;
+-- 
+2.17.1

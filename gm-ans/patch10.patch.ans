@@ -1,0 +1,8 @@
+Tony Luck <tony.luck@intel.com> (maintainer:EDAC-SBRIDGE)
+Qiuxu Zhuo <qiuxu.zhuo@intel.com> (reviewer:EDAC-SBRIDGE)
+Borislav Petkov <bp@alien8.de> (supporter:EDAC-CORE)
+Mauro Carvalho Chehab <mchehab@kernel.org> (supporter:EDAC-CORE)
+James Morse <james.morse@arm.com> (reviewer:EDAC-CORE)
+Robert Richter <rrichter@marvell.com> (reviewer:EDAC-CORE)
+linux-edac@vger.kernel.org (open list:EDAC-SBRIDGE)
+linux-kernel@vger.kernel.org (open list)

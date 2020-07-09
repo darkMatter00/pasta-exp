@@ -1,0 +1,6 @@
+Geert Uytterhoeven <geert+renesas@glider.be> (supporter:ARM/RENESAS ARM64 ARCHITECTURE,in file)
+Magnus Damm <magnus.damm@gmail.com> (supporter:ARM/RENESAS ARM64 ARCHITECTURE)
+Rob Herring <robh+dt@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+linux-renesas-soc@vger.kernel.org (open list:ARM/RENESAS ARM64 ARCHITECTURE)
+devicetree@vger.kernel.org (open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
+linux-kernel@vger.kernel.org (open list)

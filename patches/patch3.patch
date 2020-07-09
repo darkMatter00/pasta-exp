@@ -1,0 +1,46 @@
+From: Robin Murphy @ 2020-07-08 11:32 UTC (permalink / raw)
+To: joro
+Cc: hch, iommu, jonathan.lemon, linux-pci, linux-kernel, baolu.lu, dwmw2, linux-arm-kernel
+
+For devices stuck behind a conventional PCI bus, saving extra cycles at
+33MHz is probably fairly significant. However since native PCI Express
+is now the norm for high-performance devices, the optimisation to always
+prefer 32-bit addresses for the sake of avoiding DAC is starting to look
+rather anachronistic. Technically 32-bit addresses do have shorter TLPs
+on PCIe, but unless the device is saturating its link bandwidth with
+small transfers it seems unlikely that the difference is appreciable.
+
+What definitely is appreciable, however, is that the IOVA allocator
+doesn't behave all that well once the 32-bit space starts getting full.
+As DMA working sets get bigger, this optimisation increasingly backfires
+and adds considerable overhead to the dma_map path for use-cases like
+high-bandwidth networking.
+
+As such, let's simply take it out of consideration for PCIe devices.
+Technically this might work out suboptimal for a PCIe device stuck
+behind a conventional PCI bridge, or for PCI-X devices that also have
+native 64-bit addressing, but neither of those are likely to be found
+in performance-critical parts of modern systems.
+
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+---
+ drivers/iommu/intel/iommu.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iommu/intel/iommu.c b/drivers/iommu/intel/iommu.c
+index 9129663a7406..21b11de23a53 100644
+--- a/drivers/iommu/intel/iommu.c
++++ b/drivers/iommu/intel/iommu.c
+@@ -3348,7 +3348,8 @@ static unsigned long intel_alloc_iova(struct device *dev,
+ 	/* Ensure we reserve the whole size-aligned region */
+ 	nrpages = __roundup_pow_of_two(nrpages);
+ 
+-	if (!dmar_forcedac && dma_mask > DMA_BIT_MASK(32)) {
++	if (!dmar_forcedac && dma_mask > DMA_BIT_MASK(32) &&
++	    dev_is_pci(dev) && !pci_is_pcie(to_pci_dev(dev))) {
+ 		/*
+ 		 * First try to allocate an io virtual address in
+ 		 * DMA_BIT_MASK(32) and if that fails then try allocating
+-- 
+2.23.0.dirty
+
