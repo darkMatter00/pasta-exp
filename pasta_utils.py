@@ -3,9 +3,10 @@ import requests
 import subprocess
 import os
 
+'''
 patches = [
     'https://lore.kernel.org/lkml/20200710084841.1933254-1-yanziily@gmail.com/raw',
-    'https://lore.kernel.org/lkml/20200710193003.2lt3i5ocy5kk3b3p@pali/raw',
+    'https://lore.kernel.org/lkml/8325438e25a3a5a7e6d12ef6ede8f4350e4c65be.1594500029.git.mail@maciej.szmigiero.name/raw',
     'https://lore.kernel.org/lkml/20200619224334.GA7857@embeddedor/raw',
     'https://lore.kernel.org/lkml/f4297017-1d27-741d-3abc-36b6918801f6@linuxfoundation.org/raw',
     'https://lore.kernel.org/lkml/20200710092035.28919-1-ethercflow@gmail.com/raw',
@@ -15,7 +16,7 @@ patches = [
     'https://lore.kernel.org/lkml/20200710051043.899291-1-kamalesh@linux.vnet.ibm.com/raw',
     'https://lore.kernel.org/lkml/20200710152559.1645827-1-vkuznets@redhat.com/raw'
 ]
-
+'''
 path_get_maintainer = "scripts/get_maintainer.pl"
 
 src_tree_path = "/home/dark_matter/linux_work/linux_mainline/"
