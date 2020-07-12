@@ -1,6 +1,0 @@
-Kishon Vijay Abraham I <kishon@ti.com> (supporter:GENERIC PHY FRAMEWORK)
-Vinod Koul <vkoul@kernel.org> (supporter:GENERIC PHY FRAMEWORK)
-Maxime Ripard <mripard@kernel.org> (maintainer:ARM/Allwinner sunXi SoC support)
-Chen-Yu Tsai <wens@csie.org> (maintainer:ARM/Allwinner sunXi SoC support)
-linux-kernel@vger.kernel.org (open list:GENERIC PHY FRAMEWORK)
-linux-arm-kernel@lists.infradead.org (moderated list:ARM/Allwinner sunXi SoC support)

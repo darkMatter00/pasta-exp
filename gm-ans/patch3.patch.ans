@@ -1,5 +1,0 @@
-David Woodhouse <dwmw2@infradead.org> (supporter:INTEL IOMMU (VT-d))
-Lu Baolu <baolu.lu@linux.intel.com> (supporter:INTEL IOMMU (VT-d))
-Joerg Roedel <joro@8bytes.org> (maintainer:IOMMU DRIVERS)
-iommu@lists.linux-foundation.org (open list:INTEL IOMMU (VT-d))
-linux-kernel@vger.kernel.org (open list)

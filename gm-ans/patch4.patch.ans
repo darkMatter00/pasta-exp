@@ -1,8 +1,0 @@
-Rob Herring <robh+dt@kernel.org> (maintainer:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
-Maxime Coquelin <mcoquelin.stm32@gmail.com> (maintainer:ARM/STM32 ARCHITECTURE)
-Alexandre Torgue <alexandre.torgue@st.com> (maintainer:ARM/STM32 ARCHITECTURE,blamed_fixes:1/1=100%)
-Manivannan Sadhasivam <mani@kernel.org> (blamed_fixes:1/1=100%)
-devicetree@vger.kernel.org (open list:OPEN FIRMWARE AND FLATTENED DEVICE TREE BINDINGS)
-linux-stm32@st-md-mailman.stormreply.com (moderated list:ARM/STM32 ARCHITECTURE)
-linux-arm-kernel@lists.infradead.org (moderated list:ARM/STM32 ARCHITECTURE)
-linux-kernel@vger.kernel.org (open list)
